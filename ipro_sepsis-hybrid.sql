@@ -70,12 +70,34 @@ SELECT ALL
 	  ,CASE
 			WHEN 
 				[AbsDrgDiagnoses].[Diagnosis] IN (
-					'O753','O0337','O0387','O0487','O0737','O0882','O85','O8604','O98811','O98812','O98813',
-					'O98819','O9882','O9883','O98911','O98912','O98913','O98919','O9892','O9893','O98511',
-					'O98512','O98513','O98519','O9852','O9853'
-				)THEN '1'
+					'O75.3','O03.37','O03.87','O04.87','O07.37','O08.82','O85','O86.04','O98.811','O98.812','O98.813',
+					'O98.819','O98.82','O98.83','O98.911','O98.912','O98.913','O98.919','O98.92','O98.93','O98.511',
+					'O98.512','O98.513','O98.519','O98.52','O98.53'
+				) THEN '1'
 			ELSE '0'
 	   END																														 AS pregnancy_status		
+      ,CASE
+			WHEN 
+				[AbsDrgDiagnoses].[Diagnosis] IN (
+					'J09.X1','J09.X2','J09.X3','J09.X9','J10.00','J10.01','J1008','J10.1','J10.2','J10.81','J10.82',
+					'J10.83','J10.89','J11.0','J11.00','J11.08','J11.1','J11.2','J11.8','J11.81','J11.82','J11.83','J11.89'
+				) THEN '1'
+			ELSE '0'
+	   END																														 AS flu_positive
+	  ,CASE
+			WHEN 
+				[AbsDrgDiagnoses].[Diagnosis] IN (
+					'3E1.M39Z','5A1.D70Z','5A1.D80Z','5A1.D90Z'
+				) THEN '1'
+			ELSE '0'
+	   END																														 AS dialysis_treatment
+	  ,CASE
+			WHEN 
+				[AbsDrgDiagnoses].[Diagnosis] IN (
+					'3E1.M39Z','5A1.D70Z','5A1.D80Z','5A1.D90Z'
+				) THEN '1'
+			ELSE '0'
+	   END																														 AS dialysis_treatment
 
 -------------------------------------------------------------------------------------------------------------------------------------------------------
   FROM [CH_MTLIVE].[dbo].[BarVisits]																							 AS bar
@@ -102,7 +124,4 @@ SELECT ALL
   AND     [UnitNumber]			             IS NOT NULL
   AND     CONVERT(DATE,[ServiceDateTime])    >=          '2022-01-01'
 
-  ORDER BY bar.[VisitID],(CASE
-			WHEN ResultRW IN ('DETECTED','Detected','Positive','Positive') THEN '1'
-			ELSE '0'
-	   END	)
+  ORDER BY bar.[VisitID]
