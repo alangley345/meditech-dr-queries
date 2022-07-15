@@ -1,10 +1,10 @@
 DECLARE @facility VARCHAR(25);
 set @facility = 'facility_identifier'
 
-DECLARE @transfer_facility_id_receiving VARCHAR(25);
+DECLARE @transfer_facility_id_receiving VARCHAR(50);
 set @transfer_facility_id_receiving = 'transfer_facility_id_receiving'
 
-DECLARE @transfer_facility_id_sending VARCHAR(25);
+DECLARE @transfer_facility_id_sending VARCHAR(50);
 set @transfer_facility_id_sending = 'transfer_facility_id_sending'
 
 
@@ -39,27 +39,55 @@ SELECT ALL
 			WHEN [RaceID] = 'W'                  then 'R5'																		 
 			ELSE 'R9'																											 
 	   END																														 AS race
-	  ,CASE																													 
-			WHEN  [DispositionID] = 'OHOSP'      then '1'
-			ELSE '0'
-	   END																														 AS transferred_out
       ,CASE																													 
 			WHEN  [ArrivalID] = 'OH'      then '1'
 			ELSE '0'
 	   END																														 AS transferred_in	
+	  ,CASE																													 
+			WHEN  [DispositionID] = 'OHOSP'      then '1'
+			ELSE '0'
+	   END																														 AS transferred_out
 	  ,@transfer_facility_id_receiving																							 AS transfer_facility_id_receiving
 	  ,@transfer_facility_id_sending																							 As transfer_facility_id_sending
+	  ,CASE
+			WHEN ResultRW IN ('DETECTED','Detected','Positive','Positive') THEN '1'
+			ELSE '0'
+	   END																														 AS history_covid
+	  ,CASE
+			WHEN 
+				ResultRW IN ('DETECTED','Detected','Positive','Positive') THEN ResultDateTime
+			ELSE NULL
+	   END																														 AS history_covid_dt					
+      ,[AbsDrgDiagnoses].[Diagnosis]																							 AS obesity			
+	  
 
-  FROM [CH_MTLIVE].[dbo].[BarVisits]																							 AS bar	
+-------------------------------------------------------------------------------------------------------------------------------------------------------
+  FROM [CH_MTLIVE].[dbo].[BarVisits]																							 AS bar
+
+  JOIN [CH_MTLIVE].[dbo].[AbsDrgDiagnoses]  ON bar.[VisitID] = [AbsDrgDiagnoses].[VisitID]                                       
+  JOIN [CH_MTLIVE].[dbo].[AdmVisitQueries]  ON bar.[VisitID] = [AdmVisitQueries].[VisitID]
+  JOIN [CH_MTLIVE].[dbo].[AdmDischarge]     ON bar.[VisitID] = [AdmDischarge].[VisitID]
+  JOIN [CH_MTLIVE].[dbo].[AdmittingData]    ON bar.[VisitID] = [AdmittingData].[VisitID]
+
+  --COVID DATA
+  JOIN (SELECT ALL [VisitID] AS VisitID
+		,TestPrintNumberID   AS TestPrintNumberID
+		,ResultRW		     AS ResultRW
+		,ResultDateTime      AS ResultDateTime
+		 FROM [CH_MTLIVE].[dbo].[LabSpecimenTests] as CovidTests
+		 WHERE TestPrintNumberID IN ('800.4051','100.0030','800.1036')
+		) AS CovidTests ON bar.[VisitID] = CovidTests.[VisitID]
   
-  JOIN [CH_MTLIVE].[dbo].[AbsDrgDiagnoses] ON bar.VisitID = [AbsDrgDiagnoses].[VisitID]
-  JOIN [CH_MTLIVE].[dbo].[AdmVisitQueries] ON bar.VisitID = [AdmVisitQueries].[VisitID]
-  JOIN [CH_MTLIVE].[dbo].[AdmDischarge]    ON bar.VisitID = [AdmDischarge].[VisitID]
-  JOIN [CH_MTLIVE].[dbo].[AdmittingData]   ON bar.VisitID = [AdmittingData].[VisitID]
-
-  WHERE [ServiceDateTime]          IS NOT NULL
+ 
+  WHERE   [ServiceDateTime]          IS NOT NULL
   AND   [BirthDateTime]            IS NOT NULL
   AND   bar.[DischargeDateTime]    IS NOT NULL
   AND   QueryID = 'ETHNICITY'
-  AND   [UnitNumber] IS NOT NULL
+  AND   [UnitNumber]			   IS NOT NULL
   AND   CONVERT(DATE,[ServiceDateTime])  >= '2022-01-01'
+  AND   [AbsDrgDiagnoses].Diagnosis like '%E66%'
+
+  ORDER BY bar.[VisitID],(CASE
+			WHEN ResultRW IN ('DETECTED','Detected','Positive','Positive') THEN '1'
+			ELSE '0'
+	   END	)
